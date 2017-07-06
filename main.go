@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Luzifer/rconfig"
@@ -15,6 +16,8 @@ import (
 var (
 	cfg = struct {
 		LogLevel string `flag:"log-level" default:"info" description:"Log level (debug, info, warning, error)"`
+
+		UseFullHostname bool `flag:"full-hostname" default:"true" description:"Use the full reported hostname (true) or only the first part (false)"`
 
 		VaultAddress string `flag:"vault-addr" env:"VAULT_ADDR" default:"https://127.0.0.1:8200" description:"Vault API address"`
 		VaultRoleID  string `flag:"vault-role-id" env:"VAULT_ROLE_ID" default:"" description:"ID of the role to use"`
@@ -51,6 +54,10 @@ func init() {
 	var err error
 	if hostname, err = os.Hostname(); err != nil {
 		log.Fatalf("Could not resolve hostname: %s", err)
+	}
+
+	if parts := strings.Split(hostname, "."); !cfg.UseFullHostname && len(parts) > 1 {
+		hostname = parts[0]
 	}
 }
 
