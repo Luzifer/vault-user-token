@@ -7,10 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Luzifer/rconfig"
-	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/vault/api"
 	homedir "github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/Luzifer/rconfig/v2"
 )
 
 var (
@@ -32,6 +33,7 @@ var (
 )
 
 func init() {
+	rconfig.AutoEnv(true)
 	if err := rconfig.Parse(&cfg); err != nil {
 		log.Fatalf("Unable to parse commandline options: %s", err)
 	}
@@ -115,5 +117,5 @@ func authenticateVault() error {
 		return err
 	}
 
-	return ioutil.WriteFile(tokenFile, []byte(loginSecret.Auth.ClientToken), 0600)
+	return ioutil.WriteFile(tokenFile, []byte(loginSecret.Auth.ClientToken), 0o600)
 }
