@@ -1,3 +1,9 @@
+# 0.4.1 / 2023-11-29
+
+  * Cleanup README
+  * Update dependencies
+  * Replace CI tooling
+
 # 0.4.0 / 2023-11-29
 
   * Rewrite, add support for secret override file
