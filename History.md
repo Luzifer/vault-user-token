@@ -1,3 +1,7 @@
+# 0.4.0 / 2023-11-29
+
+  * Rewrite, add support for secret override file
+
 # 0.3.0 / 2022-07-02
 
   * Add go modules support
