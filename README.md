@@ -9,7 +9,3 @@ As secret multiple strings are possible:
 - Full Hostname (`--full-hostname=true`)
 - Short Hostname (`--full-hostname=false`)
 - Secret from disk (`~/.config/vault-user-token.secret`, file must have `0o400` or `0o600` permission, content is stripped for whitespaces)
-
-----
-
-![project status](https://d2o84fseuhwkxk.cloudfront.net/vault-user-token.svg)
