@@ -1,3 +1,7 @@
+# 0.5.1 / 2024-04-19
+
+  * Update dependencies
+
 # 0.4.1 / 2023-11-29
 
   * Cleanup README
