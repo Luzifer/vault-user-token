@@ -1,3 +1,8 @@
+# 0.5.4 / 2025-06-29
+
+  * ci: onboard renovate
+  * chore: update dependencies
+
 # 0.5.3 / 2024-12-12
 
   * Update Go dependencies
