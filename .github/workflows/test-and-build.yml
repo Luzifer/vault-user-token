@@ -1,5 +1,4 @@
 ---
-
 name: test-and-build
 on:
   push:
@@ -16,7 +15,7 @@ jobs:
         shell: bash
 
     container:
-      image: luzifer/archlinux
+      image: ghcr.io/luzifer-docker/gh-arch-env@sha256:a88f984401c4ddeb3070240af21621484c30601b34d745e6691dc38839532499
       env:
         CGO_ENABLED: 0
         GOPATH: /go
@@ -24,21 +23,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Enable custom AUR package repo
-        run: echo -e "[luzifer]\nSigLevel = Never\nServer = https://archrepo.hub.luzifer.io/\$arch" >>/etc/pacman.conf
-
-      - name: Install required packages
-        run: |
-          pacman -Syy --noconfirm \
-            awk \
-            git \
-            go \
-            golangci-lint-bin \
-            make \
-            tar \
-            zip
-
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Marking workdir safe
         run: git config --global --add safe.directory /__w/vault-user-token/vault-user-token
@@ -55,12 +40,10 @@ jobs:
         run: 'awk "/^#/ && ++c==2{exit}; /^#/f" "History.md" | tail -n +2 >release_changelog.md'
 
       - name: Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@9128f238eeeeed39b82af6636303729079d51730 # v1.17.0
         if: startsWith(github.ref, 'refs/tags/')
         with:
           artifacts: '.build/*'
           bodyFile: release_changelog.md
           draft: false
           generateReleaseNotes: false
-
-...
