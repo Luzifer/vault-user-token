@@ -2,7 +2,7 @@ module github.com/Luzifer/vault-user-token
 
 go 1.24
 
-toolchain go1.25.7
+toolchain go1.26.0
 
 require (
 	github.com/Luzifer/rconfig/v2 v2.6.1
