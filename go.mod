@@ -1,11 +1,11 @@
 module github.com/Luzifer/vault-user-token
 
-go 1.24.0
+go 1.25
 
 toolchain go1.26.2
 
 require (
-	github.com/Luzifer/rconfig/v2 v2.6.1
+	github.com/Luzifer/rconfig/v2 v2.6.2
 	github.com/hashicorp/vault/api v1.23.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
