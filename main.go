@@ -1,23 +1,28 @@
+// Vault-User-Token Utility
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/Luzifer/rconfig/v2"
 	"github.com/hashicorp/vault/api"
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/Luzifer/rconfig/v2"
 )
 
 const (
 	tokenRenewValidity  = 900 // Seconds
 	tokenRenewEarly     = 30 * time.Second
 	vaultTokenFilePerms = 0o600
+
+	modeGroupReadable = 0o020
+	modeGroupWritable = 0o040
+	modeOtherReadable = 0o002
+	modeOtherWritable = 0o004
 )
 
 var (
@@ -37,29 +42,41 @@ var (
 	client *api.Client
 )
 
-func init() {
+func initApp() (err error) {
 	rconfig.AutoEnv(true)
-	if err := rconfig.Parse(&cfg); err != nil {
-		log.WithError(err).Fatal("Unable to parse commandline options")
+	if err = rconfig.Parse(&cfg); err != nil {
+		return fmt.Errorf("parsing CLI options: %w", err)
 	}
 
 	if cfg.VersionAndExit {
-		fmt.Printf("vault-user-token %s\n", version) //revive:disable:unhandled-error // printing to stdout is not expected to err
-		os.Exit(0)
+		// main will exit shortly after
+		return nil
 	}
 
 	if cfg.VaultRoleID == "" {
-		log.Fatal("You need to supply a role id for this to work")
+		return fmt.Errorf("vault-role-id missing")
 	}
 
-	if logLevel, err := log.ParseLevel(cfg.LogLevel); err == nil {
-		log.SetLevel(logLevel)
-	} else {
-		log.WithError(err).Fatal("Unable to parse log level")
+	logLevel, err := log.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		return fmt.Errorf("parsing log-level: %w", err)
 	}
+	log.SetLevel(logLevel)
+
+	return nil
 }
 
 func main() {
+	var err error
+	if err = initApp(); err != nil {
+		log.WithError(err).Fatal("initializing app")
+	}
+
+	if cfg.VersionAndExit {
+		fmt.Printf("vault-user-token %s\n", version) //nolint:forbidigo // printing to stdout is not expected to err
+		os.Exit(0)
+	}
+
 	roleSecret, err := getVaultRoleSecret()
 	if err != nil {
 		log.WithError(err).Fatal("getting vault role secret")
@@ -68,7 +85,6 @@ func main() {
 	client, err = api.NewClient(&api.Config{
 		Address: cfg.VaultAddress,
 	})
-
 	if err != nil {
 		log.WithError(err).Fatal("Unable to create new vault client")
 	}
@@ -89,7 +105,7 @@ func getVaultRoleSecret() (string, error) {
 
 	secretOverrideFile, err := homedir.Expand("~/.config/vault-user-token.secret")
 	if err != nil {
-		return "", errors.Wrap(err, "expanding location of secret override")
+		return "", fmt.Errorf("expanding location of secret override: %w", err)
 	}
 
 	sofInfo, err := os.Stat(secretOverrideFile)
@@ -105,7 +121,7 @@ func getVaultRoleSecret() (string, error) {
 	}
 
 	if secret, err = os.Hostname(); err != nil {
-		return "", errors.Wrap(err, "resolving hostname")
+		return "", fmt.Errorf("resolving hostname: %w", err)
 	}
 
 	if parts := strings.Split(secret, "."); !cfg.UseFullHostname && len(parts) > 1 {
@@ -116,7 +132,7 @@ func getVaultRoleSecret() (string, error) {
 }
 
 func hasInsecurePermission(filePerm os.FileMode) bool {
-	for _, insecMode := range []os.FileMode{0o040, 0o020, 0o004, 0o002} {
+	for _, insecMode := range []os.FileMode{modeGroupWritable, modeGroupReadable, modeOtherWritable, modeOtherReadable} {
 		if filePerm&insecMode == insecMode {
 			return true
 		}
@@ -131,7 +147,7 @@ func keepRenewingToken() error {
 			err   error
 		)
 		if lease, err = client.Auth().Token().RenewSelf(tokenRenewValidity); err != nil {
-			return errors.Wrap(err, "renewing token")
+			return fmt.Errorf("renewing token: %w", err)
 		}
 
 		log.Debugf("Token renewed for another %d seconds.", lease.Auth.LeaseDuration)
@@ -141,25 +157,30 @@ func keepRenewingToken() error {
 }
 
 func authenticateVault(roleSecret string) error {
-	data := map[string]interface{}{
+	data := map[string]any{
 		"role_id":   cfg.VaultRoleID,
 		"secret_id": roleSecret,
 	}
 
-	loginSecret, lserr := client.Logical().Write("auth/approle/login", data)
-	if lserr != nil || loginSecret.Auth == nil {
-		return errors.Wrap(lserr, "logging in using approle")
+	loginSecret, err := client.Logical().Write("auth/approle/login", data)
+	if err != nil {
+		return fmt.Errorf("logging in using approle: %w", err)
+	}
+
+	if loginSecret.Auth == nil {
+		return fmt.Errorf("no loginsecret-auth returned")
 	}
 
 	client.SetToken(loginSecret.Auth.ClientToken)
 
 	tokenFile, err := homedir.Expand("~/.vault-token")
 	if err != nil {
-		return errors.Wrap(err, "expanding token file path")
+		return fmt.Errorf("expanding token file path: %w", err)
 	}
 
-	return errors.Wrap(
-		os.WriteFile(tokenFile, []byte(loginSecret.Auth.ClientToken), vaultTokenFilePerms),
-		"writing vault token file",
-	)
+	if err = os.WriteFile(tokenFile, []byte(loginSecret.Auth.ClientToken), vaultTokenFilePerms); err != nil {
+		return fmt.Errorf("writing vault token file: %w", err)
+	}
+
+	return nil
 }
