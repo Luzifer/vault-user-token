@@ -1,3 +1,7 @@
+# 0.5.6 / 2026-09-13
+
+  * chore(sec): update transitive dependencies
+
 # 0.5.5 / 2026-09-13
 
   * fix(deps): update module github.com/hashicorp/vault/api to v1.23.0
