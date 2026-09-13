@@ -1,3 +1,10 @@
+# 0.5.5 / 2026-09-13
+
+  * fix(deps): update module github.com/hashicorp/vault/api to v1.23.0
+  * fix(deps): update module github.com/luzifer/rconfig/v2 to v2.6.2
+  * fix(deps): update module github.com/sirupsen/logrus to v1.9.4
+  * refactor: resolve linter error, minor renames
+
 # 0.5.4 / 2025-06-29
 
   * ci: onboard renovate
