@@ -11,7 +11,7 @@ import (
 	"github.com/Luzifer/rconfig/v2"
 	"github.com/hashicorp/vault/api"
 	homedir "github.com/mitchellh/go-homedir"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -57,11 +57,11 @@ func initApp() (err error) {
 		return fmt.Errorf("vault-role-id missing")
 	}
 
-	logLevel, err := log.ParseLevel(cfg.LogLevel)
+	logLevel, err := logrus.ParseLevel(cfg.LogLevel)
 	if err != nil {
 		return fmt.Errorf("parsing log-level: %w", err)
 	}
-	log.SetLevel(logLevel)
+	logrus.SetLevel(logLevel)
 
 	return nil
 }
@@ -69,7 +69,7 @@ func initApp() (err error) {
 func main() {
 	var err error
 	if err = initApp(); err != nil {
-		log.WithError(err).Fatal("initializing app")
+		logrus.WithError(err).Fatal("initializing app")
 	}
 
 	if cfg.VersionAndExit {
@@ -79,24 +79,23 @@ func main() {
 
 	roleSecret, err := getVaultRoleSecret()
 	if err != nil {
-		log.WithError(err).Fatal("getting vault role secret")
+		logrus.WithError(err).Fatal("getting vault role secret")
 	}
 
 	client, err = api.NewClient(&api.Config{
 		Address: cfg.VaultAddress,
 	})
 	if err != nil {
-		log.WithError(err).Fatal("Unable to create new vault client")
+		logrus.WithError(err).Fatal("creating new vault client")
 	}
 
 	for {
 		if err = authenticateVault(roleSecret); err != nil {
-			log.WithError(err).Fatal("Unable to authenticate vault")
+			logrus.WithError(err).Fatal("authenticating against vault")
 		}
 
-		if err = keepRenewingToken(); err != nil {
-			log.WithError(err).Error("Unale to renew token")
-		}
+		err = renewTokenUntilFailure()
+		logrus.WithError(err).Error("renewing token")
 	}
 }
 
@@ -140,7 +139,7 @@ func hasInsecurePermission(filePerm os.FileMode) bool {
 	return false
 }
 
-func keepRenewingToken() error {
+func renewTokenUntilFailure() error {
 	for {
 		var (
 			lease *api.Secret
@@ -150,7 +149,7 @@ func keepRenewingToken() error {
 			return fmt.Errorf("renewing token: %w", err)
 		}
 
-		log.Debugf("Token renewed for another %d seconds.", lease.Auth.LeaseDuration)
+		logrus.Debugf("token renewed for another %d seconds", lease.Auth.LeaseDuration)
 
 		<-time.After(time.Duration(lease.Auth.LeaseDuration)*time.Second - tokenRenewEarly)
 	}
